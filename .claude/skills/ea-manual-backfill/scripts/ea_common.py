@@ -135,6 +135,12 @@ def ensure_ea_session(committee: str | None) -> None:
         raise SystemExit(3)
     click_text(text=match, tags="a")
     time.sleep(1)
-    click_text(text="Next", tags="button")
+    clicked = js(
+        "(() => { const e = Array.from(document.querySelectorAll('input[type=submit], button'))"
+        ".find(e => ((e.value || e.textContent) || '').trim() === 'Next' && e.offsetParent !== null); if (!e) return false; e.click(); return true; })()"
+    )
+    if not clicked:
+        print("committee page: Next control not found; see references/ea-ui-map.md (Session and committee)")
+        raise SystemExit(3)
     settle()
     print(f"committee selected: {match}")

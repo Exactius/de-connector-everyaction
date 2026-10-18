@@ -7,8 +7,9 @@ update both in the same change.
 
 | Page | URL | Notes |
 | --- | --- | --- |
-| Login | redirected off `app.everyaction.com` | scripts stop with `LOGIN_REQUIRED`; a human logs in |
-| Select User (committee) | `https://app.everyaction.com/SelectCommittee.aspx` | one link per committee, e.g. `OperationWhiteStork-ram (Operation White Stork)`, `href="javascript:void(0)"`; click the link, then the `Next` button |
+| Login (Bonterra universal login, Auth0) | `https://auth.bonterra.network/u/login/identifier?state=…` then `…/u/login/password?state=…` | two steps: `input[name=username]` (email) + `button[name=action]` ("Next"), then `input[name=password]` + `button[name=action]`. Submit with a DOM `.click()` on the button (coordinate clicks are dropped on a hidden tab). `scripts/ea_login.py` does this with the Secret Manager JSON; without it, scripts stop with `LOGIN_REQUIRED` and a human logs in |
+| Logout | `https://app.everyaction.com/Login.aspx?mode=logout&newURL=1` | user menu → `#user-dropdown-option-log-out` |
+| Select User (committee) | `https://app.everyaction.com/SelectCommittee.aspx` | one link per committee, e.g. `OperationWhiteStork-ram (Operation White Stork)`, `href="javascript:void(0)"`; click the link, then `input[type=submit][value=Next]` (`#ctl01_ContentPlaceHolderVANPage_ButtonContinue`, a submit input, not a button) |
 | Home | `https://app.everyaction.com/MyHomepage.aspx?HasCommittee=1#/` | reached after committee selection |
 
 EA keeps the session for hours; the committee selection is per browser session.

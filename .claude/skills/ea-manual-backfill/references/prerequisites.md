@@ -49,7 +49,8 @@ browser-use doctor                     # "chrome running" + "daemon alive" once 
 One-time setup in Google Chrome (not Arc, not Safari: the harness attaches to Chrome's DevTools port):
 
 1. Open `chrome://inspect/#remote-debugging` and tick **Allow remote debugging for this browser instance**.
-2. Log in to `https://app.everyaction.com` in that same Chrome and pick the partner committee.
+2. Log in to `https://app.everyaction.com` in that same Chrome and pick the partner committee — or let
+   `scripts/ea_login.py` do it (section 3b).
 3. Run any `browser-use` command (the skill's step 1 script is fine). Chrome shows a popup
    **Allow remote debugging?** → click **Allow** while the command is still waiting. If the command
    times out first, just rerun it and click faster. `browser-use mac-approve` can click it for you only
@@ -69,6 +70,31 @@ accepted; `DevToolsActivePort not found` means step 1 was not done in the Chrome
 The harness runs Python snippets with helpers pre-imported (`list_tabs`, `goto_url`, `wait_for_load`,
 `js`, `click_at_xy`, `cdp`, `page_info`). The skill's scripts are such snippets, fed on stdin
 (`browser-use < script.py`); parameters come from environment variables.
+
+## 3b. Scripted login (optional): the Secret Manager login JSON
+
+`scripts/ea_login.py` logs in to EA through the Bonterra universal login when the Chrome session has
+expired, then selects the committee. It reads one secret:
+
+| Secret | Project | Content |
+| --- | --- | --- |
+| `ea-login-<partner>` (default `ea-login-whitestork`) | `peppy-castle-368715` | `{"username": "<email>", "password": "<password>", "committee": "<committee name>", "login_url": "https://app.everyaction.com"}` |
+
+```bash
+gcloud secrets versions access latest --secret=ea-login-whitestork --project=peppy-castle-368715 \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(sorted(d), d["username"])'
+EA_COMMITTEE="Operation White Stork" browser-use < .claude/skills/ea-manual-backfill/scripts/ea_login.py
+```
+
+Expect `LOGGED_IN: … | header: <user> / <committee>`. Rules that keep this safe:
+
+- The password is read inside the `browser-use` process and typed into the login form; the scripts
+  never print it. Do not echo the secret in a shell, a log or a ticket.
+- The account is a named EA user of the partner (`ram@exacti.us` for whitestork); the partner agreed
+  to its use. Rotate the secret from the console (add a version, disable the old one) when it changes.
+- EA/Bonterra has no MFA on this account today. If a verification step ever appears, the script stops
+  with `still on the login host` and a human finishes the login in Chrome.
+- Access needed: `secretmanager.secretAccessor` on the secret.
 
 ## 4. Claude Code permission
 

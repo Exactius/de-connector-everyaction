@@ -12,9 +12,11 @@ retries it and never runs it the next day. Every few weeks someone has to export
 push it into bronze and recreate the schedule. The human runbook stays the reference; this skill makes
 the run reproducible by anyone on the team and adds the checks that the runbook leaves implicit.
 
-The operator (the human running this) keeps three things that cannot and should not be automated:
-their EA login in Chrome, the go/no-go before writing to the partner's BigQuery, and the click on
-EA's "Schedule" button. Everything else is scripted here.
+The operator (the human running this) keeps two decisions that should not be automated: the go/no-go
+before writing to the partner's BigQuery, and the click on EA's "Schedule" button. Everything else is
+scripted here, including the EA login (credentials in Secret Manager, typed by the script, never
+printed) and the committee selection. Chrome still runs on the operator's machine: this is a runbook
+an agent executes with a human present, not an unattended job.
 
 ## Read this first
 
@@ -43,6 +45,7 @@ EA's "Schedule" button. Everything else is scripted here.
 | `EA_TEMPLATE_URL` | `https://app.everyaction.com/ReportViewer.aspx?ReportId=EID1B&TemplateId=EID1A871K` | Report Manager → Saved Templates → link of the template row |
 | `EA_SCHEDULE_URL` | `https://app.everyaction.com/ReportScheduleDetails.aspx?TemplateId=96417` | Report Viewer → Report Actions → Schedule, copy the URL |
 | `EA_RECIPIENTS` | `data.analysis@exacti.us, ian.s@exacti.us, nelson@exacti.us` | `data.analysis@exacti.us` is what the service reads; the rest is courtesy |
+| `EA_LOGIN_SECRET` | `ea-login-whitestork` (project `peppy-castle-368715`) | one secret per partner account, see prerequisites §3b |
 | `DBT_MODEL` | `every_action_contribution_report` in `whitestork_DBT_V2` | the silver model reading the bronze source |
 | `DAG_ID` | `whitestork_pipeline_daily` | the DAG whose dbt tasks the operator reruns at the end |
 
@@ -97,8 +100,18 @@ the same template are normal history: each one is a previous manual recreation.
 
 ### 2. Export the report from EA (browser)
 
-Precondition: Chrome is open, the operator is logged in to EA, remote debugging is enabled
-(prerequisites). The script opens the saved template in its Report Viewer, checks the applied filters,
+Precondition: Chrome is open with remote debugging enabled (prerequisites), and an EA session. If the
+operator is not logged in, or the session expired, log in from the Secret Manager credentials:
+
+```bash
+EA_COMMITTEE="$EA_COMMITTEE" browser-use < .claude/skills/ea-manual-backfill/scripts/ea_login.py
+```
+
+It prints `already logged in` or `login submitted`, then `LOGGED_IN: … | header: <user> / <committee>`.
+Every other browser script also stops cleanly with `LOGIN_REQUIRED` when the session is gone, so running
+`ea_login.py` first costs nothing and removes the one step that used to need a human at the keyboard.
+
+The export script opens the saved template in its Report Viewer, checks the applied filters,
 triggers `Export As → CSV`, waits for the asynchronous export in "My Export Files", and downloads the
 zip into `$WORK/download/`.
 
@@ -219,6 +232,8 @@ next person needs when the schedule dies again.
 | --- | --- | --- |
 | `browser-use` prints `permission-blocked` or `daemon didn't come up` | Chrome remote debugging not enabled, or the "Allow remote debugging?" popup was not clicked while the command waited | prerequisites.md, section Chrome |
 | `SELECT_COMMITTEE_REQUIRED` | EA login landed on the committee picker | set `EA_COMMITTEE` (the script clicks it) or pick it in Chrome |
+| `LOGIN_REQUIRED` | no EA session in Chrome | run `scripts/ea_login.py` (needs the Secret Manager login JSON) or log in by hand |
+| `ea_login.py` ends with `still on the login host` | wrong password, or Bonterra added a verification step | check the secret version in the console; if a code is requested, a human finishes the login |
 | `FILTERS:` shows a date range that is not the YTD | the saved template was edited | stop; the export would not match the daily email scope |
 | Export stuck `In Progress` > 10 min | EA export queue | wait and rerun step 2; EA keeps the file in My Export Files until 11:59 PM ET |
 | `validate_csv.py` reports ids missing from the CSV | wrong template or wrong committee | do not upload |
