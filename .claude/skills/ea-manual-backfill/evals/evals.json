@@ -1,0 +1,24 @@
+{
+  "skill_name": "ea-manual-backfill",
+  "note": "These prompts document how the skill is expected to be invoked. They are not run by an automated harness: the workflow drives a live browser session and writes to a partner's BigQuery dataset, so each script is instead exercised against real data in read-only or scratch-only mode (see SKILL.md steps 1, 3, 4) before any change to the skill is merged.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "whitestork_pipeline_daily failed this morning on extract_ea_contribution with a 404 'No messages found'. Can you check what happened and backfill the EA contribution data? I'm logged in to EveryAction in Chrome.",
+      "expected_output": "Runs bronze_status.sh and the Cloud Run log check, reads the EA Scheduled Templates status, reports the gap (last batch date, missing days) and the Failed schedule, then proposes the export → validate → dry-run → operator go → append → reschedule sequence, stopping before the partner write and before the Schedule click.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "the EA donations for whitestork look stale in silver (last date 2 days ago). is this the scheduled report thing again? if so fix it but tell me before you write anything to ex-whitestork",
+      "expected_output": "Confirms with bronze_status.sh and the schedule list whether the EA schedule is Failed, explains that the YTD export means tomorrow's email would heal the gap if the schedule is recreated today, and asks whether today's silver matters before uploading; recreates the schedule with EA_CONFIRM=0 first and shows the read-back values.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I exported ContributionReport-639279323735133785.zip from EveryAction myself, it's in ~/Downloads. Validate it against bronze and push it if it's fine.",
+      "expected_output": "Skips the browser export, unzips, runs export_batch_keys.sh + validate_csv.py, dry-runs via upload_csv.sh into peppy-castle-368715.ex_elt_testing and compare_scratch_to_bronze.sh, reports the expected CSV-path format differences, then asks for the go before upload_csv.sh on the partner table and runs verify_after_upload.sh.",
+      "files": []
+    }
+  ]
+}

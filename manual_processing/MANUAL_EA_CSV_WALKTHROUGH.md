@@ -2,6 +2,11 @@
 
 ## How to use this
 
+> **Agent-driven version:** the Claude Code skill in [`.claude/skills/ea-manual-backfill/`](../.claude/skills/ea-manual-backfill/SKILL.md)
+> runs Scenario A end to end (EA export through your logged-in Chrome, CSV validation against the previous bronze batch,
+> dry-run in the internal scratch dataset, append, post-upload checks, schedule recreation). This document stays the
+> human reference for both scenarios.
+
 This guide covers two scenarios for manually uploading EveryAction (EA) contribution data:
 
 - **Scenario A: Failed email export** — The automated email export failed or was missed. You have a CSV export covering the missing date range and need to append it to the existing data.
