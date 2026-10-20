@@ -60,7 +60,7 @@ navigate to the download URL; the file lands in `downloadPath` with its original
 | Additional Recipients | `#targetEmails` | empty | comma-separated emails; `data.analysis@exacti.us` is the one the service reads |
 | Schedule Name/Email Subject | `#scheduleName` | empty, required | exactly the template name; EA prefixes `EveryAction Scheduled Report - ` |
 | Schedule Description | `#scheduleDescription` | empty | leave |
-| Frequency | `#RecurrenceType` (`select`, options `string:Daily`, `string:Weekly`, `string:Monthly`, `string:TwiceMonthly`, `string:Quarterly`, `string:FiscalQuarterly`) | shows Daily but the bound value may be `Monthly`; set it explicitly and dispatch `change` | `string:Daily` |
+| Frequency | `#RecurrenceType` (`select`, options `string:Daily`, `string:Weekly`, `string:Monthly`, `string:TwiceMonthly`, `string:Quarterly`, `string:FiscalQuarterly`); `ng-model` `scheduleSettingsCtrl.model.recurrence.recurrenceType` | opens showing Daily but the bound model defaults to `Monthly`; a DOM `value`+`change` does not stick (Angular re-renders the select back to the model on `$digest`) | assign the `ng-model` inside `$apply` (`angular.element(s).scope().$apply(() => sc.$eval(m + " = 'Daily'"))`), then verify the summary line reads `delivered daily` before submitting |
 | Start Date | `#StartDate` (text + datepicker) | tomorrow | tomorrow (`MM/DD/YYYY`) |
 | End Date | `#EndDate` | tomorrow | `12/31/<year>` |
 | Summary line | text `Your report will be delivered daily, starting on <weekday, Month D, YYYY>` | | read back as proof |
