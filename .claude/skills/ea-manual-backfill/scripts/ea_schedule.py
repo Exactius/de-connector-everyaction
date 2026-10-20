@@ -33,8 +33,11 @@ if center_of(selector="#scheduleButton") is None:
 type_into(selector="#targetEmails", text=RECIPIENTS)
 type_into(selector="#scheduleName", text=SUBJECT)
 js(
-    "(() => { const s = document.querySelector('#RecurrenceType'); const o = Array.from(s.options).find(o => /daily/i.test(o.text));"
-    " s.value = o.value; s.dispatchEvent(new Event('change', {bubbles: true})); })()"
+    "(() => { const s = document.querySelector('#RecurrenceType'); const m = s.getAttribute('ng-model');"
+    " const sc = window.angular && angular.element(s).scope();"
+    " if (sc && m) { sc.$apply(function(){ sc.$eval(m + \" = 'Daily'\"); }); return 'angular:' + sc.$eval(m); }"
+    " const o = Array.from(s.options).find(o => /daily/i.test(o.text)); s.value = o.value;"
+    " s.dispatchEvent(new Event('change', {bubbles: true})); return 'dom:' + s.value; })()"
 )
 time.sleep(0.5)
 type_into(selector="#StartDate", text=START)
@@ -51,6 +54,10 @@ for field in FIELDS:
 print(f"  {'#RecurrenceType':22s} = {frequency!r}")
 print(f"  {'contact records':22s} = {contact_records!r}")
 print(f"  {'EA summary':22s} = {ea_summary!r}")
+
+if "daily" not in frequency.lower() or "delivered daily" not in ea_summary.lower():
+    print(f"FREQUENCY NOT DAILY: select={frequency!r} summary={ea_summary!r} (Angular model did not commit to Daily)")
+    raise SystemExit(5)
 
 checks = {
     "#targetEmails": RECIPIENTS,
